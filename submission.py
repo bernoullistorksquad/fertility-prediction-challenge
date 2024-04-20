@@ -16,41 +16,26 @@ run.py can be used to test your submission.
 """
 
 # List your libraries and modules here. Don't forget to update environment.yml!
+import numpy as np
 import pandas as pd
-from sklearn.linear_model import LogisticRegression
-import joblib
+import matplotlib.pyplot as plt
+from sklearn.impute import SimpleImputer
+from sklearn.model_selection import cross_val_score
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 
 
 def clean_df(df, background_df=None):
-    """
-    Preprocess the input dataframe to feed the model.
-    # If no cleaning is done (e.g. if all the cleaning is done in a pipeline) leave only the "return df" command
 
-    Parameters:
-    df (pd.DataFrame): The input dataframe containing the raw data (e.g., from PreFer_train_data.csv or PreFer_fake_data.csv).
-    background (pd.DataFrame): Optional input dataframe containing background data (e.g., from PreFer_train_background_data.csv or PreFer_fake_background_data.csv).
+# drop all features with more than 0.5 missingness
+    threshold = 0.1
+    num_cols_total = df.shape[1]
+    selection = df.dropna(axis = 'columns', thresh = int(np.round(num_cols_total * threshold)))      #NOTE this is still quite sketchy -> why are only 24 columns selected?
 
-    Returns:
-    pd.DataFrame: The cleaned dataframe with only the necessary columns and processed variables.
-    """
-
-    ## This script contains a bare minimum working example
-    # Create new variable with age
-    df["age"] = 2024 - df["birthyear_bg"]
-
-    # Imputing missing values in age with the mean
-    df["age"] = df["age"].fillna(df["age"].mean())
-
-    # Selecting variables for modelling
-    keepcols = [
-        "nomem_encr",  # ID variable required for predictions,
-        "age"          # newly created variable
-    ] 
-
-    # Keeping data with variables selected
-    df = df[keepcols]
-
-    return df
+    imp = SimpleImputer(strategy = "most_frequent")
+    imputed = pd.DataFrame(imp.fit_transform(selection))
+   
+    return imputed
 
 
 def predict_outcomes(df, background_df=None, model_path="model.joblib"):
