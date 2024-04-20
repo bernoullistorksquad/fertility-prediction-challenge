@@ -21,8 +21,7 @@ train_save_model <- function(cleaned_df, outcome_df) {
   
   model_df<- model_df[-which(is.na( model_df$new_child)),]
   # Logistic regression model
-  model <- train(factor(new_child) ~ age, data = model_df, 
-                 method = "gbm")
+  model <- glm(new_child ~ age, family = "binomial", data = model_df)
   
   # Save the model
   saveRDS(model, "model.rds")
