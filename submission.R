@@ -80,10 +80,10 @@ predict_outcomes <- function(df, background_df = NULL, model_path = "./model.rds
   # Generate predictions from model
   predictions <- predict(model, 
                          subset(df, select = age), 
-                         type = "response") 
+                         type = "prob") 
   
   # Create predictions that should be 0s and 1s rather than, e.g., probabilities
-  predictions <- ifelse(predictions > 0.5, 1, 0)  
+  predictions <- ifelse(predictions$`0` > predictions$`1`, 0, 1) 
   
   # Output file should be data.frame with two columns, nomem_encr and predictions
   df_predict <- data.frame("nomem_encr" = df[ , "nomem_encr" ], "prediction" = predictions)

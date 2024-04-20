@@ -19,8 +19,9 @@ train_save_model <- function(cleaned_df, outcome_df) {
   # Combine cleaned_df and outcome_df
   model_df <- merge(cleaned_df, outcome_df, by = "nomem_encr")
   
+  model_df<- model_df[-which(is.na( model_df$new_child)),]
   # Logistic regression model
-  model <- train(new_child ~ age, data = model_df, 
+  model <- train(factor(new_child) ~ age, data = model_df, 
                  method = "gbm")
   
   # Save the model
