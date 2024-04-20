@@ -79,7 +79,7 @@ predict_outcomes <- function(df, background_df = NULL, model_path = "./model.rds
   
   # Generate predictions from model
   predictions <- predict(model, 
-                         subset(df, select = vars_without_id), 
+                         subset(df, select = age), 
                          type = "response") 
   
   # Create predictions that should be 0s and 1s rather than, e.g., probabilities
