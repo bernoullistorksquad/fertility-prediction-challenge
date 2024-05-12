@@ -10,17 +10,17 @@ from sklearn.impute import KNNImputer
 from category_encoders import CatBoostEncoder   
 from sklearn.ensemble import AdaBoostClassifier
 # load PreFer_train_data.csv (may take a while)
-PreFer_train_data = pd.read_csv('~/Desktop/Pre-Fer/5e8ab08c-b634-4948-8b47-8792d36d753f/training_data/PreFer_train_data.csv')
+#PreFer_train_data = pd.read_csv('~/Desktop/Pre-Fer/5e8ab08c-b634-4948-8b47-8792d36d753f/training_data/PreFer_train_data.csv')
 
 # load codebook
-PreFer_codebook = pd.read_csv('~/Desktop/Pre-Fer/5e8ab08c-b634-4948-8b47-8792d36d753f/codebooks/PreFer_codebook.csv')
+#PreFer_codebook = pd.read_csv('~/Desktop/Pre-Fer/5e8ab08c-b634-4948-8b47-8792d36d753f/codebooks/PreFer_codebook.csv')
 
 # load PreFer_train_outcome.csv
-PreFer_train_outcome = pd.read_csv('~/Desktop/Pre-Fer/5e8ab08c-b634-4948-8b47-8792d36d753f/training_data/PreFer_train_outcome.csv')
+#PreFer_train_outcome = pd.read_csv('~/Desktop/Pre-Fer/5e8ab08c-b634-4948-8b47-8792d36d753f/training_data/PreFer_train_outcome.csv')
 
-PreFer_fake_data = pd.read_csv('~/Desktop/Pre-Fer/5e8ab08c-b634-4948-8b47-8792d36d753f/other_data/PreFer_fake_data.csv')
+#PreFer_fake_data = pd.read_csv('~/Desktop/Pre-Fer/5e8ab08c-b634-4948-8b47-8792d36d753f/other_data/PreFer_fake_data.csv')
 
-PreFer_fake_outcome = pd.read_csv('~/Desktop/Pre-Fer/5e8ab08c-b634-4948-8b47-8792d36d753f/other_data/PreFer_fake_outcome.csv')
+#PreFer_fake_outcome = pd.read_csv('~/Desktop/Pre-Fer/5e8ab08c-b634-4948-8b47-8792d36d753f/other_data/PreFer_fake_outcome.csv')
 
 def clean_df(df, background_df=None):
     """
