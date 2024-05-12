@@ -123,7 +123,9 @@ def predict_outcomes(df, background_df=None, model_path="model.joblib"):
     #predictions = model.predict(df[vars_without_id])
 
     nomem_encr = df['nomem_encr']
-    df = df.drop(['nomem_encr','outcome_available','birthyear_bg'], axis=1)
+
+    df.drop(['nomem_encr','outcome_available','birthyear_bg'], axis=1,inplace=True)
+
     predictions = model.predict(df)
 
     # Output file should be DataFrame with two columns, nomem_encr and predictions

@@ -7,6 +7,8 @@ def train_save_model(cleaned_df, outcome_df):
     cleaned_df (pd.DataFrame): The cleaned data from clean_df function to be used for training the model.
     outcome_df (pd.DataFrame): The data with the outcome variable (e.g., from PreFer_train_outcome.csv or PreFer_fake_outcome.csv).
     """
+
+    cleaned_df = clean_df(cleaned_df)
     
     ## This script contains a bare minimum working example
     #random.seed(1) # not useful here because logistic regression deterministic
@@ -20,6 +22,7 @@ def train_save_model(cleaned_df, outcome_df):
     model_df.drop(['outcome_available', 'nomem_encr','birthyear_bg'], axis=1, inplace=True)
     #model_df = model_df[~model_df['new_child'].isna()]  
     y = model_df['new_child']
+
     model_df.drop('new_child',axis=1, inplace=True)# Your features here
 
     for cols in model_df.columns:
@@ -31,7 +34,7 @@ def train_save_model(cleaned_df, outcome_df):
 
     X = encoder.transform(model_df) # Do not change this
 
-    # Logistic regression model
+    # Adaboost Model
     model = AdaBoostClassifier(n_estimators=300, random_state=42,learning_rate = 0.96)
 
     model.fit(X,y)
@@ -40,4 +43,5 @@ def train_save_model(cleaned_df, outcome_df):
 
     # Save the model
     joblib.dump(model, "model.joblib")
+
 
