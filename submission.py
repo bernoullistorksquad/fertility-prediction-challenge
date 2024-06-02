@@ -1,86 +1,187 @@
 #submission.py 
+
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from sklearn.impute import SimpleImputer
-from sklearn.model_selection import cross_val_score
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import KNNImputer
-from category_encoders import CatBoostEncoder   
-from sklearn.ensemble import AdaBoostClassifier
+from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import uniform
+from xgboost import XGBClassifier # Use this class
 import joblib
 
 
+
 def clean_df(df, background_df=None):
-    """
-    Preprocess the input dataframe to feed the model.
-    # If no cleaning is done (e.g. if all the cleaning is done in a pipeline) leave only the "return df" command
-
-    Parameters:
-    df (pd.DataFrame): The input dataframe containing the raw data (e.g., from PreFer_train_data.csv or PreFer_fake_data.csv).
-    background (pd.DataFrame): Optional input dataframe containing background data (e.g., from PreFer_train_background_data.csv or PreFer_fake_background_data.csv).
-
-    Returns:
-    pd.DataFrame: The cleaned dataframe with only the necessary columns and processed variables.
-    """
-
-    # selecting the important variables 
-
-    keep_these = ['nomem_encr', 'outcome_available', 'cf14g_m', 'cf17j_m', 'cf14g001', 'cf17j001', 'cf14g003', 
-                  'cf17j003', 'cf14g004', 'cf17j004', 'cf14g024', 'cf17j024', 'cf14g128', 'cf14g388', 'cf17j388', 'cf14g389', 'cf17j389', 'cf14g390', 
-                  'cf17j390', 'cf14g391', 'cf17j391', 'cf14g392', 'cf17j392',  'cf14g394',  
-                  'cf14g396', 'cf14g397', 'cf17j397', 'cf14g432', 'cf17j432', 'cf17j454', 'cf17j471', 'birthyear_bg', 'gender_bg', 
-                  'migration_background_bg', 'age_bg', 'belbezig_2007', 'belbezig_2008', 'belbezig_2009', 'belbezig_2010', 'belbezig_2011', 'belbezig_2012', 
-                  'belbezig_2013', 'belbezig_2014', 'belbezig_2015', 'belbezig_2016', 'belbezig_2017', 'belbezig_2018', 'belbezig_2019', 'belbezig_2020', 
-                  'brutohh_f_2008', 'brutohh_f_2009', 'brutohh_f_2010', 'brutohh_f_2011', 'brutohh_f_2012', 'brutohh_f_2013', 'brutohh_f_2014', 'brutohh_f_2015',
-                  'brutohh_f_2016', 'brutohh_f_2017', 'brutohh_f_2018', 'brutohh_f_2019', 'brutohh_f_2020', 'brutoink_2009', 'brutoink_2014', 'brutoink_f_2008', 
-                  'brutoink_f_2009', 'brutoink_f_2010', 'brutoink_f_2011', 'brutoink_f_2012', 'brutoink_f_2013', 'brutoink_f_2014', 'brutoink_f_2015', 
-                  'brutoink_f_2016', 'brutoink_f_2017', 'brutoink_f_2018', 'brutoink_f_2019', 'brutoink_f_2020', 'burgstat_2007', 'burgstat_2008', 
-                  'burgstat_2009', 'burgstat_2010', 'burgstat_2011', 'burgstat_2012', 'burgstat_2013', 'burgstat_2014', 'burgstat_2015', 'burgstat_2016', 
-                  'burgstat_2017', 'burgstat_2018', 'burgstat_2019', 'burgstat_2020', 'netinc_2008', 'netinc_2009', 'netinc_2010', 'netinc_2011', 'netinc_2012', 
-                  'netinc_2013', 'netinc_2014', 'netinc_2015', 'netinc_2016', 'netinc_2017', 'netinc_2018', 'netinc_2019', 'netinc_2020', 'nettohh_f_2008', 
-                  'nettohh_f_2009', 'nettohh_f_2010', 'nettohh_f_2011', 'nettohh_f_2012', 'nettohh_f_2013', 'nettohh_f_2014', 'nettohh_f_2015', 'nettohh_f_2016', 
-                  'nettohh_f_2017', 'nettohh_f_2018', 'nettohh_f_2019', 'nettohh_f_2020', 'nettoink_2007', 'nettoink_2008', 'nettoink_2009', 'nettoink_2010', 
-                  'nettoink_2011', 'nettoink_2012', 'nettoink_2013', 'nettoink_2014', 'nettoink_2015', 'nettoink_2016', 'nettoink_2017', 'nettoink_2018',
-                  'nettoink_2019', 'nettoink_2020', 'nettoink_f_2008', 'nettoink_f_2009', 'nettoink_f_2010', 'nettoink_f_2011', 'nettoink_f_2012', 
-                  'nettoink_f_2013', 'nettoink_f_2014', 'nettoink_f_2015', 'nettoink_f_2016', 'nettoink_f_2017', 'nettoink_f_2018', 'nettoink_f_2019', 
-                  'nettoink_f_2020', 'oplcat_2007', 'oplcat_2008', 'oplcat_2009', 'oplcat_2010', 'oplcat_2011', 'oplcat_2012', 'oplcat_2013', 'oplcat_2014',
-                  'oplcat_2015', 'oplcat_2016', 'oplcat_2017', 'oplcat_2018', 'oplcat_2019', 'oplcat_2020', 'oplmet_2007', 'oplmet_2008', 'oplmet_2009', 
-                  'oplmet_2010', 'oplmet_2011', 'oplmet_2012', 'oplmet_2013', 'oplmet_2014', 'oplmet_2015', 'oplmet_2016', 'oplmet_2017', 'oplmet_2018', 
-                  'oplmet_2019', 'oplmet_2020', 'oplzon_2007', 'oplzon_2008', 'oplzon_2009', 'oplzon_2010', 'oplzon_2011', 'oplzon_2012', 'oplzon_2013', 
-                  'oplzon_2014', 'oplzon_2015', 'oplzon_2016', 'oplzon_2017', 'oplzon_2018', 'oplzon_2019', 'oplzon_2020', 'partner_2007', 'partner_2008', 
-                  'partner_2009', 'partner_2010', 'partner_2011', 'partner_2012', 'partner_2013', 'partner_2014', 'partner_2015', 'partner_2016', 'partner_2017', 'partner_2018', 
-                  'partner_2019', 'partner_2020', 'sted_2008', 'sted_2009', 'sted_2010', 'sted_2011', 'sted_2012', 'sted_2013', 'sted_2014', 'sted_2015', 'sted_2016', 'sted_2017', 
-                  'sted_2018', 'sted_2019', 'sted_2020', 'woning_2007', 'woning_2008', 'woning_2009', 'woning_2010', 'woning_2011', 'woning_2012', 'woning_2013', 'woning_2014', 
-                  'woning_2015', 'woning_2016', 'woning_2017', 'woning_2018', 'woning_2019', 'woning_2020', 'woonvorm_2007', 'woonvorm_2008', 'woonvorm_2009', 'woonvorm_2010', 
-                  'woonvorm_2011', 'woonvorm_2012', 'woonvorm_2013', 'woonvorm_2014', 'woonvorm_2015', 'woonvorm_2016', 'woonvorm_2017', 'woonvorm_2018', 'woonvorm_2019', 
-                  'woonvorm_2020']
-
-    df = df[keep_these]
-
-    imputer = KNNImputer(n_neighbors=2, weights="uniform")
-    imputed_df = pd.DataFrame(imputer.fit_transform(df))
-    imputed_df.columns = df.columns
-
-    ## This script contains a bare minimum working example
-    # Create new variable with age
-    #df["age"] = 2024 - df["birthyear_bg"]
-
-    # Imputing missing values in age with the mean
-#    df["age"] = df["age"].fillna(df["age"].mean())
-
     # Selecting variables for modelling
-    #keepcols = [
-    #    "nomem_encr",  # ID variable required for predictions,
-    #    "age"         # newly created variable
-    #    ,"gender_bg"  # <--------ADDED VARIABLE
-    #] 
+    keepcols = [
+        "nomem_encr", "outcome_available", "age_bg","ca20g012", "ca20g013", "ca20g078",
+        "cd20m034", "cf20m024", "cf20m025", "cf20m026", "cf20m029", "cf20m030",
+        "cf20m128", "cf20m129", "cf20m130", "cf20m166", "cf20m454", "cf20m455",
+        "cf20m513", "cf20m514", "cf20m515", "cf20m516", "cf20m517", "cf20m518",
+        "cf20m519", "cf20m520", "cf20m521", "ch20m004", "ch20m219",  "ch20m269",
+        "ch15h011", "ch16i011", "ch17j011",  "ch18k011", "ch19l011", "ch20m011",
+        "cr18k101","cr18k102", "cr18k103", "cr18k104", "cr18k105", "cr20m162", "cv10c135",
+        "cv10c136", "cv10c137", "cv10c138", "cv20l109", "cv20l110", "cv20l111",
+        "cv20l112", "cv20l113", "cv20l114", "cv20l115", "cv20l124", "cv20l125",
+        "cv20l126", "cv20l127", "cv20l128", "cv20l129", "cv20l130", "cv20l143",
+        "cv20l144", "cv20l145", "cv20l146", "cv20l151", "cv20l152", "cv20l153",
+        "ch07a018", "ch08b018", "ch10d018","ch15h018","ch16i018","ch17j018","ch18k018","ch19l018","ch20m018",
+        "cv20l154", "birthyear_bg", "belbezig_2020", "gender_bg", "migration_background_bg",
+        'cr08a030','cr09b030','cr10c030','cr11d030', 'cr12e030','cr13f030','cr14g030','cr15h030',
+        'cr16i030','cr17j030','cr18k030', 'cr19l030','cr20m030',
+        ##partner
+        'partner_2007','partner_2008','partner_2009','partner_2010','partner_2011','partner_2012','partner_2013','partner_2014','partner_2015','partner_2016','partner_2017','partner_2018','partner_2019','partner_2020',
+        "nettohh_f_2020","nettohh_f_2019", "oplmet_2020", "sted_2020", "woning_2020","cw10c062",
+        ##nettoinkomen
+        'nettoink_f_2013','nettoink_f_2014','nettoink_f_2015','nettoink_f_2016','nettoink_f_2017','nettoink_f_2018','nettoink_f_2019','nettoink_f_2020',
+        #langugage
+        'cr08a086','cr09b086','cr10c086','cr11d086','cr12e086','cr13f086','cr14g086','cr15h086','cr16i086','cr17j086','cr18k086','cr19l086','cr20m086', #flemish
+        'cr08a085','cr09b085','cr10c085','cr11d085','cr12e085','cr13f085','cr14g085','cr15h085','cr16i085','cr17j085','cr18k085','cr19l085','cr20m085',#turkish
+        'cr08a084','cr09b084','cr10c084','cr11d084','cr12e084','cr13f084','cr14g084','cr15h084','cr16i084','cr17j084', 'cr18k084','cr19l084','cr20m084', #indo
+        'cr08a083','cr09b083','cr10c083','cr11d083','cr12e083','cr13f083','cr14g083','cr15h083','cr16i083','cr17j083','cr18k083','cr19l083','cr20m083', #fris
+        'cr08a080','cr09b080','cr10c080','cr11d080','cr12e080','cr13f080','cr14g080','cr15h080','cr16i080','cr17j080','cr18k080','cr19l080','cr20m080'#arab
+        ]
 
-    # Keeping data with variables selected
-    #df = df[keepcols]
+    # Keeping data with selected variables
+    df = df[keepcols]
 
-    return imputed_df
+    # Keep only rows with available outcomes
+    df = df[df["outcome_available"] == 1].copy()
+
+    # Impute savings with range midpoints and other rules
+    df["ca20g012"] = np.where(df["ca20g078"] == 0, 0, df["ca20g012"])
+    df["ca20g012"] = np.where(df["ca20g013"] == 1, -1200, df["ca20g012"])
+    savings_map = {2: 150, 3: 375, 4: 625, 5: 875, 6: 1750, 7: 3750, 8: 6250,
+                   9: 8750, 10: 10750, 11: 12750, 12: 15500, 13: 18500, 14: 22500, 15: 62500}
+    df["ca20g012"] = df.apply(lambda row: savings_map.get(row["ca20g013"], row["ca20g012"]), axis=1)
+    df["ca20g012"] = np.where(df["ca20g013"] == 999, np.nan, df["ca20g012"])
+    df["ca20g012"] = np.where(df["ca20g012"] < -9999999997, np.nan, df["ca20g012"])
+
+    # Apply various transformation rules
+    df["cf20m025"] = np.where(df["cf20m024"] == 2, 2, df["cf20m025"])
+    df["cf20m030"] = np.where(df["cf20m024"] == 2, 2, df["cf20m030"])
+    df["cf20m129"] = np.where(df["cf20m128"] == 2, 0, df["cf20m129"])
+    df["cf20m130"] = np.where(df["cf20m128"] == 2, 31, np.where(df["cf20m130"] == 2025, 5, df["cf20m130"]))
+    df["cf20m166"] = np.where(df["cf20m166"] == 99, np.nan, df["cf20m166"])
+    df["cf20m455"] = np.where(df["cf20m454"] == 2, 0, df["cf20m455"])
+
+    # Scale adjustments and means
+    df[["cf20m515", "cf20m516", "cf20m518", "cf20m519", "cf20m520", "cf20m521"]] = 8 - df[["cf20m515", "cf20m516", "cf20m518", "cf20m519", "cf20m520", "cf20m521"]]
+
+    df["child_feeling"] = df[["cf20m513", "cf20m514", "cf20m515", "cf20m516", "cf20m517",
+                              "cf20m518", "cf20m519", "cf20m520", "cf20m521"]].mean(axis=1, skipna=True)
+
+    gendered_religiosity_columns = ["cr18k101", "cr18k102", "cr18k103", "cr18k104", "cr18k105"]
+    df[gendered_religiosity_columns] = df[gendered_religiosity_columns].applymap(lambda x: 3 if x == 1 else (1 if x == 2 else 2))
+    df["cr18k102"] = 4 - df["cr18k102"]
+    df["cr18k105"] = 4 - df["cr18k105"]
+    df["gendered_religiosity"] = df[gendered_religiosity_columns].mean(axis=1, skipna=True)
+
+    df["cr20m162"] = np.where(df["cr20m162"] == -9, np.nan, df["cr20m162"])
+
+    df["ch20m269"] = df["ch20m269"].fillna(0)
+
+    traditional_fertility_columns = ["cv10c135", "cv10c136", "cv10c137", "cv10c138"]
+    df["traditional_fertility"] = df[traditional_fertility_columns].mean(axis=1, skipna=True)
+
+    df["cv20l109"] = 6 - df["cv20l109"]
+    traditional_motherhood_columns = ["cv20l109", "cv20l110", "cv20l111"]
+    df["traditional_motherhood"] = df[traditional_motherhood_columns].mean(axis=1, skipna=True)
+
+    traditional_fatherhood_columns = ["cv20l112", "cv20l113", "cv20l114", "cv20l115"]
+    df[["cv20l112", "cv20l114", "cv20l115"]] = 6 - df[["cv20l112", "cv20l114", "cv20l115"]]
+    df["traditional_fatherhood"] = df[traditional_fatherhood_columns].mean(axis=1, skipna=True)
+
+    traditional_marriage_columns = ["cv20l124", "cv20l125", "cv20l126", "cv20l127", "cv20l128", "cv20l129", "cv20l130"]
+    df[["cv20l126", "cv20l127", "cv20l128", "cv20l129", "cv20l130"]] = 6 - df[["cv20l126", "cv20l127", "cv20l128", "cv20l129", "cv20l130"]]
+    df["traditional_marriage"] = df[traditional_marriage_columns].mean(axis=1, skipna=True)
+
+    working_mother_columns = ["cv20l143", "cv20l144", "cv20l145", "cv20l146"]
+    df["working_mother"] = df[working_mother_columns].mean(axis=1, skipna=True)
+
+    sexism_columns = ["cv20l151", "cv20l152", "cv20l153", "cv20l154"]
+    df["sexism"] = df[sexism_columns].mean(axis=1, skipna=True)
+
+    anxiety_columns = ["ch15h011", "ch16i011", "ch17j011",  "ch18k011", "ch19l011", "ch20m011"]
+    df['anxiety'] = df[anxiety_columns].mean(axis =1, skipna= True)
+
+    long_standing = ["ch07a018", "ch08b018", "ch10d018","ch15h018","ch16i018","ch17j018","ch18k018","ch19l018","ch20m018"]
+    df['long_standing'] = df[long_standing].mean(axis = 1, skipna= True) 
+
+    god_belief = ['cr08a030','cr09b030','cr10c030','cr11d030','cr12e030','cr13f030','cr14g030','cr15h030','cr16i030','cr17j030','cr18k030','cr19l030','cr20m030']
+    df['god'] = df[god_belief].mean(axis = 1, skipna= True) 
+
+    netto_columns = ['nettoink_f_2013','nettoink_f_2014','nettoink_f_2015','nettoink_f_2016','nettoink_f_2017','nettoink_f_2018','nettoink_f_2019','nettoink_f_2020']
+    df['netto'] = df[netto_columns].mean(axis = 1, skipna= True)
+
+    language_columns = ['cr08a086','cr09b086','cr10c086','cr11d086','cr12e086','cr13f086','cr14g086','cr15h086','cr16i086','cr17j086','cr18k086','cr19l086','cr20m086', #flemish
+        'cr08a085','cr09b085','cr10c085','cr11d085','cr12e085','cr13f085','cr14g085','cr15h085','cr16i085','cr17j085','cr18k085','cr19l085','cr20m085',#turkish
+        'cr08a084','cr09b084','cr10c084','cr11d084','cr12e084','cr13f084','cr14g084','cr15h084','cr16i084','cr17j084', 'cr18k084','cr19l084','cr20m084', #indo
+        'cr08a083','cr09b083','cr10c083','cr11d083','cr12e083','cr13f083','cr14g083','cr15h083','cr16i083','cr17j083','cr18k083','cr19l083','cr20m083', #fris
+        'cr08a080','cr09b080','cr10c080','cr11d080','cr12e080','cr13f080','cr14g080','cr15h080','cr16i080','cr17j080','cr18k080','cr19l080','cr20m080']
+    
+    language = df[language_columns].mean(axis=1)
+
+    language[language>0]=1
+
+    language = language.fillna(1)
+
+    df['language'] = language
+
+
+    partner_columns =['partner_2007','partner_2008','partner_2009','partner_2010','partner_2011','partner_2012','partner_2013','partner_2014','partner_2015','partner_2016','partner_2017','partner_2018','partner_2019','partner_2020']
+
+    partner = df[partner_columns].mean(axis=1)
+
+    partner[partner>0]=1
+
+    partner = partner.fillna(0)
+    
+    df['partner']=partner
+    
+    df["employee"] = np.where(df["belbezig_2020"] == 1, 1, 0)
+    df["freelance"] = np.where(df["belbezig_2020"] == 3, 1, 0)
+    df["student"] = np.where(df["belbezig_2020"] == 7, 1, 0)
+    df["homemaker"] = np.where(df["belbezig_2020"] == 8, 1, 0)
+
+    df["migration_background_bg"] = df["migration_background_bg"].apply(lambda x: 1 if x in [0, 101, 201] else (0 if x in [102, 202] else x))
+
+    df["oplmet_2020"] = df["oplmet_2020"].apply(lambda x: 2 if x in [1, 2, 8, 9] else (np.nan if x == 7 else x))
+
+    df["woning_2020"] = df["woning_2020"].apply(lambda x: 1 if x == 1 else (np.nan if x == 0 else 0))
+
+    # Drop unnecessary columns
+    dropcols = ["outcome_available", "ca20g078", "ca20g013", "cf20m128", "cf20m454",
+                "cf20m513", "cf20m514", "cf20m515", "cf20m516", "cf20m517", "cf20m518",
+                "cf20m519", "cf20m520", "cf20m521", "cr18k101", "cr18k102", "cr18k103",
+                "cr18k104", "cr18k105", "cv10c135", "cv10c136", "cv10c137", "cv10c138",
+                "cv20l109", "cv20l110", "cv20l111", "cv20l112", "cv20l113", "cv20l114",
+                "cv20l115", "cv20l124", "cv20l125", "cv20l126", "cv20l127", "cv20l128",
+                "cv20l129", "cv20l130", "cv20l143", "cv20l144", "cv20l145", "cv20l146",
+                "ch15h011", "ch16i011", "ch17j011",  "ch18k011", "ch19l011", "ch20m011",
+                "cv20l151", "cv20l152", "cv20l153", "cv20l154", "belbezig_2020", 
+                "ch07a018", "ch08b018", "ch10d018","ch15h018","ch16i018","ch17j018","ch18k018","ch19l018","ch20m018",
+                "migration_background_bg",'cr08a030','cr09b030','cr10c030','cr11d030','cr12e030','cr13f030','cr14g030',
+                'cr15h030', 'cr16i030','cr17j030','cr18k030','cr19l030','cr20m030',
+               'partner_2007','partner_2008','partner_2009','partner_2010','partner_2011','partner_2012','partner_2013','partner_2014','partner_2015','partner_2016','partner_2017','partner_2018','partner_2019','partner_2020',#partner
+                'cr08a086','cr09b086','cr10c086','cr11d086','cr12e086','cr13f086','cr14g086','cr15h086','cr16i086','cr17j086','cr18k086','cr19l086','cr20m086', #flemish
+        'cr08a085','cr09b085','cr10c085','cr11d085','cr12e085','cr13f085','cr14g085','cr15h085','cr16i085','cr17j085','cr18k085','cr19l085','cr20m085',#turkish
+        'cr08a084','cr09b084','cr10c084','cr11d084','cr12e084','cr13f084','cr14g084','cr15h084','cr16i084','cr17j084', 'cr18k084','cr19l084','cr20m084', #indo
+        'cr08a083','cr09b083','cr10c083','cr11d083','cr12e083','cr13f083','cr14g083','cr15h083','cr16i083','cr17j083','cr18k083','cr19l083','cr20m083', #fris
+        'cr08a080','cr09b080','cr10c080','cr11d080','cr12e080','cr13f080','cr14g080','cr15h080','cr16i080','cr17j080','cr18k080','cr19l080','cr20m080',#arab
+        'nettoink_f_2013','nettoink_f_2014','nettoink_f_2015','nettoink_f_2016','nettoink_f_2017','nettoink_f_2018','nettoink_f_2019','nettoink_f_2020'#netto
+        ]
+    
+    df.drop(columns=dropcols, inplace=True)
+
+    df = df.apply(pd.to_numeric, errors='coerce')
+    df['oplmet_2020'] = df['oplmet_2020'].astype('category')
+
+    imputer = KNNImputer(n_neighbors=10, weights="uniform")
+    imputed_data = pd.DataFrame(imputer.fit_transform(df))
+    imputed_data.columns =  df.columns
+    return imputed_data
+
+
 
 
 def predict_outcomes(df, background_df=None, model_path="model.joblib"):
@@ -124,7 +225,7 @@ def predict_outcomes(df, background_df=None, model_path="model.joblib"):
 
     nomem_encr = df['nomem_encr']
 
-    df.drop(['nomem_encr','outcome_available','birthyear_bg'], axis=1,inplace=True)
+    df.drop(['nomem_encr'], axis=1,inplace=True)
 
     predictions = model.predict(df)
 

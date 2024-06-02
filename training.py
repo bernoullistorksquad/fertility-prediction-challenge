@@ -19,29 +19,35 @@ def train_save_model(cleaned_df, outcome_df):
     model_df=  model_df[~model_df['new_child'].isna()] 
 
     #Drop the useless variables 
-    model_df.drop(['outcome_available', 'nomem_encr','birthyear_bg'], axis=1, inplace=True)
+    model_df.drop(['nomem_encr'], axis=1, inplace=True)
     #model_df = model_df[~model_df['new_child'].isna()]  
     y = model_df['new_child']
 
     model_df.drop('new_child',axis=1, inplace=True)# Your features here
 
-    for cols in model_df.columns:
-        model_df[cols] = model_df[cols].astype('category',copy=False)
+    xgb_optimization_parameters = {'learning_rate':  uniform(0.01,1), 
+                               'n_estimators': range(100,200,10),
+                               'min_child_weight': uniform(0,8),
+                               'eta': uniform(0.01,0.5), 
+                               'max_depth':range(1,17,2),
+                               'gamma': uniform(0,10),
+                               'colsample_bylevel':uniform(0,1),
+                               'subsample': uniform(0.01,1),
+                               'reg_alpha': uniform(0,1)}  
 
-    encoder = CatBoostEncoder(random_state=1915743)# Complete this
 
-    encoder.fit(model_df,y)# Fit the encoder
+    xgb_searcher = RandomizedSearchCV(XGBClassifier(random_state = 1915743), xgb_optimization_parameters, random_state=42,n_iter=50) # Complete this
 
-    X = encoder.transform(model_df) # Do not change this
 
-    # Adaboost Model
-    model = AdaBoostClassifier(n_estimators=300, random_state=42,learning_rate = 0.96)
+    xgb_search = xgb_searcher.fit(model_df,y)
 
-    model.fit(X,y)
+    xgbclassifier = xgb_search.best_estimator_ 
+
+    model = xgbclassifier 
+
+    model.fit(model_df,y)
     # Fit the model
     #model.fit(model_df[['age', 'gender_bg']], model_df['new_child']) # <------- ADDED VARIABLE
 
     # Save the model
     joblib.dump(model, "model.joblib")
-
-
